@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="/static/web/common/css/all.css" type="text/css"?>
+<?xml-stylesheet href="/static/web/common/css/board.css" type="text/css"?>
+<?xml-stylesheet href="/static/web/common/css/content.css" type="text/css"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:w2="http://www.inswave.com/websquare" xmlns:xf="http://www.w3.org/2002/xforms">
+	<head>
+		<title>로그인 | The-K손해보험 educar</title>
+		<w2:buildDate />
+		<xf:model>
+			<xf:instance>
+				<data xmlns="">
+					<signatureLogin><!-- 공인인증서 -->
+						<request>
+							<requestBody>
+								<data xsi:type="signatureCertificationInputDTO" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
+							</requestBody>
+						</request>
+					</signatureLogin>
+					<creditLogin><!-- 신용카드 -->
+						<request>
+							<requestBody>
+								<data xsi:type="cardCertificationInputDTO" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" />
+							</requestBody>
+						</request>
+					</creditLogin>
+				</data>
+			</xf:instance>
+			<!-- 신용카드 유효기간 select box option initialized -->
+			<xf:submission id="submissionCardVldTerm1Init" action="/static/common/xml/data/dataMonth.xml"
+				method="get" mediatype="application/xml" encoding="EUC-KR" replace="instance" mode="synchronous" />
+			<!-- 공인인증 initialized -->
+			<xf:submission id="submissionSignatureInit" ref="" target=""
+				action="/signatureInit.do" method="get" mediatype="text/xml" encoding="EUC-KR" instance=""
+				replace="instance" errorHandler="" customHandler="" mode="asynchronous" processMsg="">
+				<script type="javascript" ev:event="xforms-submit-done"><![CDATA[
+					WebSquare.ModelUtil.setInstanceValue('signatureLogin/request/requestBody/data/securityNonceRequest', WebSquare.ModelUtil.getInstanceValue('response/responseBody/data/value'));
+				]]></script>
+			</xf:submission>
+			<!-- 공인인증 -->
+			<xf:submission id="submissionSignatureLogin" ref="signatureLogin/request" target=""
+				action="/web/signatureCertificationLogin.do" method="post" mediatype="text/xml" encoding="EUC-KR" instance=""
+				replace="instance" errorHandler="" customHandler="" mode="asynchronous" processMsg="">
+				<script type="javascript" ev:event="xforms-submit-done"><![CDATA[
+					var status = WebSquare.ModelUtil.getInstanceValue('response/status');
+					if (status == '1') {
+						location.href = GlobalFunc.nonSessionReferrerClient();
+					}
+				]]></script>
+			</xf:submission>
+			<!-- 신용카드 인증 -->
+			<xf:submission id="submissionCreditLogin" ref="creditLogin/request" target=""
+				action="/web/certificationLogin.do" method="post" mediatype="text/xml" encoding="EUC-KR" instance=""
+				replace="instance" errorHandler="" customHandler="" mode="asynchronous" processMsg="">
+				<script type="javascript" ev:event="xforms-submit-done"><![CDATA[
+					var status = WebSquare.ModelUtil.getInstanceValue('response/status');
+					if (status == '1') {
+						location.href = GlobalFunc.nonSessionReferrerClient();
+					}
+				]]></script>
+			</xf:submission>
+		</xf:model>
+		<script type="javascript"><![CDATA[
+			var PageParam = { };
+			var PageFunc = {
+				/** Initialized */
+				init : function() {
+					// 공인인증 initialized
+					var signatureObj = WebSquare.ModelUtil.getSubmission('submissionSignatureInit');
+					signatureObj.action = signatureObj.action + '?postfix=' + WebSquare.date.getCurrentServerDate('yyyyMMddHHmmssSSS');
+					WebSquare.ModelUtil.executeSubmission('submissionSignatureInit');
+
+					// 신용카드 initialized
+					// 신용카드 유효기간 select box option month
+					WebSquare.ModelUtil.executeSubmission('submissionCardVldTerm1Init');
+					// 신용카드 유효기간 select box option year add
+					PageParam.currentYear = WebSquare.date.getCurrentServerDate('yyyy');
+					PageParam.dummyYear = PageParam.currentYear;
+					while (PageParam.dummyYear <= (Number(PageParam.currentYear) + 10) ) {
+						cardVldTerm2.addItem(PageParam.dummyYear, PageParam.dummyYear);
+						PageParam.dummyYear++;
+					}
+				}(),
+
+				/* 공인인증 Callback */
+				signatureCallback : function(pkcs7, vid_random) {
+					WebSquare.ModelUtil.setInstanceValue('signatureLogin/request/requestBody/data/pkcs7', pkcs7);
+					WebSquare.ModelUtil.setInstanceValue('signatureLogin/request/requestBody/data/vid', vid_random);
+					WebSquare.ModelUtil.executeSubmission('submissionSignatureLogin');
+				}
+			};
+
+			// 공인 인증 로그인
+			$('#btnSignatureLogin').click(function() {
+				if (!WQFunc.validate(grpLoginBySignature)) {
+					return false;
+				}
+				WebSquare.ModelUtil.setInstanceValue('signatureLogin/request/requestBody/data/ssn', ssn1Signature.getValue() + ssn2Signature.getValue());
+				Delfino.loginForm(this, PageFunc.signatureCallback);
+			});
+
+			// 신용카드 인증 로그인
+			$('#btnCreditLogin').click(function() {
+				if (!WQFunc.validate(grpLoginByCredit)) {
+					return false;
+				}
+
+				// 주민등록 번호조합
+				WebSquare.ModelUtil.setInstanceValue('creditLogin/request/requestBody/data/ssn', ssn1Credit.getValue() + ssn2Credit.getValue());
+
+				// 신용카드 번호조합
+				PageParam.cardNo = '';
+				$('.card_no').each(function(i) {
+					PageParam.cardNo += $(this).val();
+				});
+				WebSquare.ModelUtil.setInstanceValue('creditLogin/request/requestBody/data/cardNo', PageParam.cardNo);
+
+				// 유효기간 (년도2자리 + 월2자리) 
+				PageParam.cardVldTerm1 = $('#cardVldTerm2 option:selected').val().substring(2,4);
+				PageParam.cardVldTerm2 = $.trim(cardVldTerm1.getValue());
+				WebSquare.ModelUtil.setInstanceValue('creditLogin/request/requestBody/data/cardVldTerm', PageParam.cardVldTerm1 + PageParam.cardVldTerm2);
+
+				WebSquare.ModelUtil.executeSubmission('submissionCreditLogin');
+			});
+		]]></script>
+	</head>
+	<body>
+		<xf:group id="wrap" class="" style="" tagname="">
+			<w2:wframe id="header_wf" style="" src="/static/web/common/inc/header.xml"></w2:wframe>
+			<w2:wframe id="pg_location_wf" src="/static/web/common/inc/page_location.xml" style=""></w2:wframe>
+			<w2:wframe id="bgvisual" src="/static/web/common/inc/visual.xml" style=""></w2:wframe>
+			<xf:group class="" id="container" style="" tagname="">
+				<w2:wframe id="side" style=""
+					src="/static/web/common/inc/sideLogin.xml">
+				</w2:wframe>
+				<xf:group class="" id="body" style="" tagname="">
+					<xf:group id="bodytitle" style="">
+						<w2:textbox id="textbox1" style="" label="로그인"
+							tagname="h1">
+						</w2:textbox>
+						<w2:textbox id="textbox2"
+							label="웹사이트 이용을 위한 로그인 방법을 선택해주세요." style="" tagname=""
+							class="h1tt">
+						</w2:textbox>
+					</xf:group>
+					<xf:group id="body_content" style="">
+						<w2:textbox id="textbox81" style="" label="전자금융거래 로그인" tagname="h2"></w2:textbox>
+						<w2:textbox class="tt" id="textbox82" label="보험계약 관련 각종 금융거래서비스를 이용하기 위해서는 반드시 &lt;span&gt;공인인증서 또는 신용카드 로그인&lt;/span&gt;을 하셔야 합니다." style="" tagname="p"></w2:textbox>
+						<xf:group id="group138" style="" class="login">
+							<w2:tag id="form" tagname="form">
+								<xf:group id="group13" style="" class="" tagname="fieldset">
+									<w2:textbox id="textbox107" style="" label="전자금융거래 로그인폼" tagname="legend"></w2:textbox>
+									<w2:tabControl id="tabControl1" style="" confirmTrueAction='"exist"' useConfirmMessage="false" class="nlg_tab1" useTabKeyOnly="true" confirmFalseAction='"new"' alwaysDraw="true">
+										<w2:tabs id="tabs1" style="" label="공인인증 로그인" disabled="false"></w2:tabs>
+										<w2:tabs id="tabs2" style="width:140px" label="신용카드 인증 로그인" disabled="false"></w2:tabs>
+										<w2:content id="content1" style="" alwaysDraw="true">
+											<xf:group id="group128" style="" class="nlgbgbox bg1">
+												<xf:group id="grpLoginBySignature" style="" class="nlgfm" tagname="dl">
+													<xf:group id="group105" style="" class="nlgfm" tagname="dt">
+														<w2:textbox id="textbox83" style="" for="ssn1Signature" class="thead" label="주민등록번호" tagname="label"></w2:textbox>
+													</xf:group>
+													<xf:group id="group106" style="" class="" tagname="dd">
+														<xf:input id="ssn1Signature" title="주민번호 앞 6자리" style="height:23px;width:104px;" class="lgtt fl" applyFormat=""
+															dataType="number" displayFormat="" maxlength="6"
+															minlength="6" mandatory="true" displaymessage="true" invalidMessageFunc="WQFunc.validateMsg('주민등록번호 앞자리')">
+														</xf:input>
+														<w2:textbox id="textbox84" for="ssn2Signature" style="width:10px" class="ip_line" label="-"></w2:textbox>
+														<xf:secret class="lgtt fl" id="ssn2Signature" style="height:23px;width:104px;" title="주민번호 뒷 7자리"
+															dataType="number" minlength="7" maxlength="7"
+															displaymessage="true" mandatory="true" invalidMessageFunc="WQFunc.validateMsg('주민등록번호 뒷자리')">
+														</xf:secret>
+													</xf:group>
+												</xf:group>
+												<xf:group id="group107" style="" class="bdinfo mt15">
+													<xf:group id="group108" style="" class="ct">
+														<xf:group id="group109" style="" class="" tagname="a">
+															<w2:attributes>
+																<w2:href>#</w2:href>
+															</w2:attributes>
+															<xf:image id="btnSignatureLogin" style="" alt="로그인" src="/static/web/images/content/btn_login.gif"></xf:image>
+														</xf:group>
+													</xf:group>
+												</xf:group>
+												<xf:group id="group110" style="" class="btn_info">
+													<xf:group id="group111" style="" class="btnb">
+														<xf:group id="group112" style="" class="btn_bdin bu" tagname="span">
+															<w2:textbox id="textbox86" style="" class="" label="전자금융거래 회원가입" tagname="a">
+																<w2:attributes>
+																	<w2:href>/web/login/memberStepNameCertification.thek</w2:href>
+																</w2:attributes>
+															</w2:textbox>
+														</xf:group>
+													</xf:group>
+												</xf:group>
+											</xf:group>
+										</w2:content>
+										<w2:content id="content2" style="" alwaysDraw="true">
+											<xf:group id="group129" style="" class="nlgbgbox bg2">
+												<xf:group id="grpLoginByCredit" style="" class="nlgfm" tagname="dl">
+													<xf:group id="group114" style="" class="" tagname="dt">
+														<w2:textbox id="textbox87" style="" for="ssn1Credit" class="thead" label="주민등록번호" tagname="label"></w2:textbox>
+													</xf:group>
+													<xf:group id="group115" style="" class="" tagname="dd">
+														<xf:input id="ssn1Credit" title="주민번호 앞 6자리" style="height:23px;width:104px;" class="lgtt fl ssn_no"
+															dataType="number" minlength="6" maxlength="6" displaymessage="true" mandatory="true" invalidMessageFunc="WQFunc.validateMsg('주민등록번호 앞자리')">
+														</xf:input>
+														<w2:textbox id="textbox88" style="width:10px" class="ip_line" label="-"></w2:textbox>
+														<xf:secret class="lgtt fl ssn_no" id="ssn2Credit" style="height:23px;width:104px;" title="주민번호 뒷 7자리"
+															dataType="number" maxlength="7" minlength="7" displaymessage="true" invalidMessageFunc="WQFunc.validateMsg('주민등록번호 뒷자리')" mandatory="true">
+														</xf:secret>
+													</xf:group>
+													<xf:group id="group116" style="" class="" tagname="dt">
+														<w2:textbox id="textbox89" style="" for="cardNo1" class="thead" label="카드번호" tagname="label"></w2:textbox>
+													</xf:group>
+													<xf:group id="group117" style="" class="" tagname="dd">
+														<xf:input id="cardNo1" title="카드번호 첫번째 4자리" style="height:23px;width:44px;" class="lgtt fl card_no"
+															dataType="number" maxlength="4" minlength="4" mandatory="true" invalidMessageFunc="WQFunc.validateMsg()" displaymessage="true">
+														</xf:input>
+														<w2:textbox id="textbox90" style="width:10px" class="ip_line" label="-"></w2:textbox>
+														<xf:secret id="cardNo2" title="카드번호 두번째 4자리" style="height:23px;width:44px;" class="lgtt fl card_no"
+															dataType="number" maxlength="4" minlength="4" invalidMessageFunc="WQFunc.validateMsg()" mandatory="true" displaymessage="true">
+														</xf:secret>
+														<w2:textbox id="textbox91" style="width:10px" class="ip_line" label="-"></w2:textbox>
+														<xf:secret id="cardNo3" title="카드번호 세번째 4자리" style="height:23px;width:44px;" class="lgtt fl card_no"
+															dataType="number" maxlength="4" minlength="4" invalidMessageFunc="WQFunc.validateMsg()" displaymessage="true" mandatory="true">
+														</xf:secret>
+														<w2:textbox id="textbox92" style="width:10px" class="ip_line" label="-"></w2:textbox>
+														<xf:input id="cardNo4" title="카드번호 네번째 4자리" style="height:23px;width:44px;" class="lgtt fl card_no"
+															dataType="number" maxlength="4" minlength="4" invalidMessageFunc="WQFunc.validateMsg()" mandatory="true" displaymessage="true">
+														</xf:input>
+													</xf:group>
+													<xf:group id="group118" style="" class="" tagname="dt">
+														<w2:textbox id="textbox93" style="" for="" class="thead" label="유효기간" tagname="span"></w2:textbox>
+													</xf:group>
+													<xf:group id="group119" style="" class="" tagname="dd">
+														<xf:select1 renderType="native" id="cardVldTerm1" title="월선택" appearance="minimal" style="position:relative;width:58px;height:23px;"
+															chooseOption="true" class="fl" allOption="" chooseOptionLabel="선택" mandatory="true" invalidMessageFunc="WQFunc.validateMsg('유효기간 월선택')" displaymessage="true">
+															<xf:choices>
+																<xf:itemset nodeset="year/month">
+																	<xf:label ref="label"></xf:label>
+																	<xf:value ref="value"></xf:value>
+																</xf:itemset>
+															</xf:choices>
+														</xf:select1>
+														<w2:textbox id="textbox94" style="" for="cardVldTerm1_input_0" class="ip_md" label="월" tagname="label"></w2:textbox>
+														<xf:select1 renderType="native" id="cardVldTerm2" title="년선택" appearance="minimal" style="position:relative;width:58px;height:23px;"
+															chooseOption="true" chooseOptionLabel="선택" class="fl" allOption="" displaymessage="true" invalidMessageFunc="WQFunc.validateMsg('유효기간 년선택')" mandatory="true">
+															<xf:choices />
+														</xf:select1>
+														<w2:textbox id="textbox95" style="" for="cardVldTerm2_input_0" class="ip_md" label="년" tagname="label"></w2:textbox>
+													</xf:group>
+													<xf:group id="group120" style="" class="" tagname="dt">
+														<w2:textbox id="textbox96" style="" for="cardPwd" class="thead" label="비밀번호" tagname="label"></w2:textbox>
+													</xf:group>
+													<xf:group id="group36" style="" class="" tagname="dd">
+														<xf:secret id="cardPwd" style="height:23px;width:44px;" class="lgtt fl" ref="creditLogin/request/requestBody/data/cardPwd"
+															title="비밀번호 앞2자리" dataType="number" minlength="2" maxlength="2" mandatory="true" invalidMessageFunc="WQFunc.validateMsg()" displaymessage="true">
+														</xf:secret>
+														<w2:textbox id="textbox97" style="width:20px;" class="ip_line" label="**"></w2:textbox>
+													</xf:group>
+												</xf:group>
+												<xf:group id="group122" style="" class="bdinfo mt15">
+													<xf:group id="group123" style="" class="ct">
+														<xf:group id="group124" style="" class="" tagname="a">
+															<w2:attributes>
+																<w2:href>#</w2:href>
+															</w2:attributes>
+															<xf:image id="btnCreditLogin" style="" alt="로그인" src="/static/web/images/content/btn_login.gif"></xf:image>
+														</xf:group>
+													</xf:group>
+												</xf:group>
+												<xf:group id="group125" style="" class="btn_info">
+													<xf:group id="group131" style="" class="fl">
+														<w2:textbox id="textbox98" style="" class="ninfo" label="* 비씨, 현대 및 기업카드는 인증이 불가합니다." tagname="p"></w2:textbox>
+													</xf:group>
+													<xf:group id="group130" style="" class="fr">
+														<xf:group id="group126" style="" class="btnb">
+															<xf:group id="group127" style="" class="btn_bdin bu" tagname="span">
+																<w2:textbox id="textbox99" style="" class="" label="전자금융거래 회원가입" tagname="a">
+																	<w2:attributes>
+																		<w2:href>/web/login/memberStepNameCertification.thek</w2:href>
+																	</w2:attributes>
+																</w2:textbox>
+															</xf:group>
+														</xf:group>
+													</xf:group>
+												</xf:group>
+											</xf:group>
+										</w2:content>
+									</w2:tabControl>
+								</xf:group>
+							</w2:tag>
+						</xf:group>
+						<xf:group class="mytabbox pb20 mt20 mb30" id="group132" style="">
+							<xf:group class="mytabbox_wp pt20" id="group133" style="">
+								<xf:group class="mycontbox" id="group134" style="">
+									<w2:textbox class="mt0 mb10" id="textbox100" label="전자금융거래 로그인 안내" style="" tagname="h4"></w2:textbox>
+									<xf:group class="bu fs11 indent" id="group135" style="" tagname="ul">
+										<w2:textbox id="textbox101" label="홈페이지 회원으로 가입하지 않으신 상태에서는 공인인증서나 신용카드 본인인증을 통한 로그인이 되지 않으므로 먼저 홈페이지&lt;br/&gt; 회원가입을 하시기 바랍니다." style="" tagname="li"></w2:textbox>
+										<w2:textbox id="textbox102" label="공인인증서는 국가에서 인증하는 공인인증기관에서 발행한 사이버 거래용 인감증명서입니다." style="" tagname="li"></w2:textbox>
+										<w2:textbox id="textbox106" label="공인인증서가 없는 경우에는 공인인증서 발급기관인 거래은행이나 증권사를 방문하셔서 발급 받으셔야 합니다." style="" tagname="li"></w2:textbox>
+										<w2:textbox id="textbox108" label="공인인증서는 현재 고객님께서 은행이나 증권사에서 발급받은 것을 그대로 사용하실 수 있습니다." style="" tagname="li"></w2:textbox>
+										<w2:textbox id="textbox109" label="신용카드인증 로그인 시 입력하신 신용카드정보는 본인확인 용도로만 사용되며 최신 암호화 기법으로 보호됩니다." style="" tagname="li"></w2:textbox>
+										<w2:textbox id="textbox110" label="로그인 시 5회 이상 연속 비밀번호 오류가 발생하면 고객님의 정보보호를 위하여 이용이 제한되오니 정확히 확인하신 후 입력하여&lt;br/&gt; 주시기 바랍니다." style="" tagname="li"></w2:textbox>
+										<w2:textbox id="textbox111" label='문의사항은 &lt;span class="cl2054ae"&gt;콜센터(1566-3000, 1644-3000)&lt;/span&gt;로 연락 주시면 전문상담원의 친절한 상담을 받으실 수 있습니다.' style="" tagname="li"></w2:textbox>
+									</xf:group>
+								</xf:group>
+							</xf:group>
+						</xf:group>
+					</xf:group>
+				</xf:group>
+			</xf:group>
+			<w2:wframe id="footer_wf" src="/static/web/common/inc/footer.xml" style=""></w2:wframe>
+		</xf:group>
+		<w2:wframe id="delfino_wf" src="/static/web/common/inc/delfino.xml" style="display:none"></w2:wframe>
+	</body>
+</html>

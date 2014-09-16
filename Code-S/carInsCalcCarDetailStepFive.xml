@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:w2="http://www.inswave.com/websquare" xmlns:xf="http://www.w3.org/2002/xforms">
+	<head>
+		<w2:buildDate />
+		<xf:model>
+			<xf:instance>
+				<data xmlns="">
+				</data>
+			</xf:instance>
+		</xf:model>
+		<script type="javascript"><![CDATA[
+			var StepFiveParam = {};
+			var StepFiveFunc = {
+				init : function() {
+				},
+				// 세부차량 선택시
+				btnCarDetailNameOnClick : function(obj) {
+					// 차량리스트 오브젝트 배열
+					StepFiveParam.carDetailNameObj = obj.parentControl.parentControl.getChildren();
+					// 기존 건 선택 해제
+					for (var i = 0; i < StepFiveParam.carDetailNameObj.length; i++) {
+						// getchildren api는배열로 리턴하므로 한개의 컴포넌트이지만 배열에 담아야한다.
+						var carDetailNameObjArray = StepFiveParam.carDetailNameObj[i].getChildren();
+						if (carDetailNameObjArray[0].id == obj.id) {
+							carDetailNameObjArray[0].addClass('on');
+							// 차형
+							PageParam.StepThreeDriveInfo.step5.sCarType = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'sCarType');
+							//차종코드
+							PageParam.StepThreeDriveInfo.step5.sVehicleCode = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'CHAJONG');
+							// 차량세부명 저장
+							PageParam.StepThreeDriveInfo.step5.CHCD = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'CHCD');
+							// 신차구분
+							PageParam.StepThreeDriveInfo.step5.sYearType = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'sYearType');
+							// 차량가액
+							PageParam.StepThreeDriveInfo.step5.nVehicleAmt = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'nVehicleAmt');
+							// 차량등급률
+							PageParam.StepThreeDriveInfo.step5.nCarGradeRate = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'nCarGradeRate');
+							// 차량등급코드
+							PageParam.StepThreeDriveInfo.step5.sCarGradeCode = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'sCarGradeCode');
+							// 배기량
+							PageParam.StepThreeDriveInfo.step5.sExhaust = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'BEGI');
+							// 에어콘 - 기본장착에 대해서
+							PageParam.StepThreeDriveInfo.step5.sAircon = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'AIRCON');
+							// 칼라유리 - 기본장착에 대해서
+							PageParam.StepThreeDriveInfo.step5.sGlass = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'GLASS');
+							// 스트레오 - 기본장착에 대해서
+							PageParam.StepThreeDriveInfo.step5.sStereo = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'STEREO');
+							// 에어백 - 기본장착에 대해서- 
+							PageParam.StepThreeDriveInfo.step5.sAirBag = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'AIRBAG');
+							PageParam.StepThreeDriveInfo.step5.specAIR = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'AIRBAG');
+							// 안전장치 - 기본장착에 대해서
+							PageParam.StepThreeDriveInfo.step5.sROBBERY = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'ROBBERY');
+							PageParam.StepThreeDriveInfo.step5.specROBBERY = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'ROBBERY');
+							// ABS - 기본장착에 대해서
+							PageParam.StepThreeDriveInfo.step5.sABS = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'ABS');
+							PageParam.StepThreeDriveInfo.step5.specABS = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'ABS');
+							// AUTO - 기본장착에 대해서
+							PageParam.StepThreeDriveInfo.step5.sTRANS = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'TRANS');
+							PageParam.StepThreeDriveInfo.step5.specTRANS = WebSquare.xml.getValue(PageParam.carDetailList[PageParam.carDetailArr[i]], 'TRANS');
+							StepFiveParam.CHNM = grnDetailList.getChild(i, 'txtDetail').getValue() + grnDetailList.getChild(i, 'txtCarPrice').getValue();
+							PageParam.StepThreeDriveInfo.carDetailInfo = PageParam.carDetailList[PageParam.carDetailArr[i]];
+							PageFunc.saveCarDetailInfoTop(PageParam.TopModiBtnObjArray[PageParam.carInfoDetailStep - 1].getChildren(), StepFiveParam.CHNM);
+						} else {
+							carDetailNameObjArray[0].removeClass('on');
+						}
+					}
+				},
+				// 이전클릭시
+				btnFivePreOnClick : function() {
+					PageFunc.setCarDetailInfoStep(PageParam.carInfoDetailStep - 1);
+				},
+				// 다음클릭시
+				btnFiveNextOnClick : function() {
+					var validate = ValidFunc.init({
+						rules : {
+							sDetailCarName : {
+								required : true
+							}
+						},
+						names : {
+						},
+						values : {
+							sDetailCarName : PageParam.StepThreeDriveInfo.step5.CHCD
+						},
+						messages : { 
+							sDetailCarName : {required : '선택하신 차량의 세부형식을 선택해 주세요.'}
+						},
+						errorType : 'dialog'
+					});
+					// 세부차명 체크
+					validate.addMethod('sDetailCarName', function(value, element, param) {
+						return StepFiveFunc.selectDetailCarName(value);
+					}, ValidMessage.format('세부차명을 선택해주세요.'));
+					if (!validate.validate()) {
+						return false;
+					}
+					// 추가부속 페이지 이동
+					PageFunc.setNextStepInit(PageParam.carInfoDetailStep + 1);
+					//PageFunc.setCarDetailInfoStep(PageParam.carInfoDetailStep + 1);
+				},
+				// 세부차명 가져오기
+				selectDetailCarName : function() {
+					if (PageParam.StepThreeDriveInfo.step5.CHCD !== '') {
+						return true;
+					} else return false
+				}
+			};
+			StepFiveFunc.init();
+		 ]]></script>
+	</head>
+	<body>
+		<xf:group class="" id="grpDetailCarTitle" style="" tagname="h2">
+			<xf:image alt='"선택하신 차량의 세부형식을 선택해 주세요."' id="imgDetailCar" src="/static/web/images/insurancepay/content/cardefaultinfo_tt05.gif" style=""></xf:image>
+		</xf:group>
+		<xf:group id="grpDetailCarListTwo" style="" class="cdi_ctbox">
+			<xf:group id="groupFive2" style="" class="carmodelbox">
+				<xf:group id="groupFive47" style="" class="cmlistgp">
+					<w2:generator id="grnDetailList" style="" tagname="ul">
+						<xf:group id="group43" style="" class="" tagname="li">
+							<xf:group id="grpCarDetailInfo" style="" tagname="a">
+								<w2:attributes>
+									<w2:href>#</w2:href>
+								</w2:attributes>
+								<w2:textbox id="txtDetail" style="" class="ffng" label="" tagname="span"></w2:textbox>
+								<w2:textbox id="txtCarPrice" class="cl555" label="" style="" tagname="span"></w2:textbox>
+								<script type="javascript" ev:event="onclick"><![CDATA[ 
+									StepFiveFunc.btnCarDetailNameOnClick(this);
+								]]></script>
+							</xf:group>
+						</xf:group>
+					</w2:generator>
+				</xf:group>
+			</xf:group>
+			<xf:group class="bdinfo mt20" id="grpStepFiveBtn" style="">
+				<xf:group class="ct" id="groupFive57" style="">
+					<xf:group class="mr5" id="grpFivePre" style="" tagname="a">
+						<w2:attributes>
+							<w2:href>#</w2:href>
+						</w2:attributes>
+						<xf:image alt="이전" id="btnFivePre" src="/static/web/images/insurancepay/content/btn_prevpg.gif" style="">
+							<script type="javascript" ev:event="onclick"><![CDATA[ 
+								StepFiveFunc.btnFivePreOnClick();
+							]]></script>
+						</xf:image>
+					</xf:group>
+					<xf:group class="" id="grpFiveNext" style="" tagname="a">
+						<w2:attributes>
+							<w2:href>#</w2:href>
+						</w2:attributes>
+						<xf:image alt="다음단계" id="btnFiveNext" src="/static/web/images/insurancepay/content/btn_nextpg.gif" style="">
+							<script type="javascript" ev:event="onclick"><![CDATA[ 
+								StepFiveFunc.btnFiveNextOnClick();
+							]]></script>
+						</xf:image>
+					</xf:group>
+				</xf:group>
+			</xf:group>
+		</xf:group>
+	</body>
+</html>
